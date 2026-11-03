@@ -7,7 +7,7 @@ Collection of Stey (Susteynable) internal skills for AI coding agents — archit
 | Skill | Purpose |
 |---|---|
 | `stl-arch-akka` | Stey Akka CQRS services: aggregates, domain events, projection wiring |
-| `stl-arch-cicd` | Stey Scala CI/CD: sbt launcher, `.jvmopts`/`Xmx4G`, build pipeline conventions |
+| `stl-arch-cicd` | Stey Scala CI/CD on GitHub Actions: publish, image tags, global ACR, Helm to AKS |
 | `stl-arch-play` | Stey Play + Tapir APIs: ApplicationLoader, routing, handler wiring |
 | `stl-component-apm` | Stey JVM APM/Sentry wiring via `stey-common-apm` |
 | `stl-component-i18n-messages` | Stey enum labels and system strings via `stey-common-i18n-message` |

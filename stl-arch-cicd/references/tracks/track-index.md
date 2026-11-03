@@ -1,6 +1,8 @@
 # Track Index
 
-Use the smallest track set that matches the request, but keep order.
+GitHub Actions is the live CI path. Read `../github-actions.md` before any workflow, image-tag, publish, or Helm change.
+
+Use the smallest track set that matches the request, but keep order. Tracks G–L and N are legacy Azure Pipelines. Do not apply them to a repo that already has `.github/workflows/`.
 
 | Track | File | Use for |
 |---|---|---|

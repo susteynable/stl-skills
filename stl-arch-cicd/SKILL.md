@@ -1,85 +1,67 @@
 ---
 name: stl-arch-cicd
 description: >
-  Use when changing Stey Scala CI/CD: sbt launcher, project `.jvmopts`/`Xmx4G`,
-  aether/Nexus deps, Azure Pipelines, Docker publish, Helm deploy, AKSHosted
-  pools, PR-Agent Build Validation, or branch policies (reviewers + PR gates).
+  Use when changing Stey Scala CI/CD on GitHub Actions: test/publish/UAT
+  workflows, manual China and Nordics prod deploys, sbt version and image
+  tags, Nexus plus susteynable/stl publish, global ACR, Helm on AKS.
+  Azure Pipelines, AKSHosted, and PR-Agent are legacy and apply only to a
+  repo that is still on Azure DevOps.
 ---
 
 # Stey CI/CD Architecture
 
 ## Purpose
 
-Keep Stey service build and deployment changes ordered across sbt, Nexus, pipeline gates, Docker publish, Helm deploy, agent pool wiring, PR-Agent Azure DevOps setup, and protected-branch policies for future projects.
+Keep Stey service build and deploy changes on the GitHub Actions path: branch roles, sbt publish and image tags, Nexus plus the shared `stl` Maven repo, global ACR, and Helm deploys to China and Nordics AKS.
 
 ## Workflow
 
-1. Read Track A first for mandatory sync and scope classification.
-2. Select the minimum track set from `references/tracks/track-index.md`.
-3. Use `references/core-toolchain.md` for sbt, aether, versioning, Nexus, and dependency rules.
-4. Use `references/core-pipelines.md` for develop, deploy, Docker, Helm, and pool rules.
-5. Use Track N + copy-ready `assets/pr-pipeline.yml` / `assets/release-pipeline.yml` for the split Azure Pipelines layout (PR-Agent + Build/Test vs release CI/CD).
-6. For new/protected repos, create the ADO PR definition as `{RepoName}(PR)` and configure branch policies per `track-n-branch-policies.md` (min 1 human approver + Build Validation → that pipeline).
-7. Keep edits within the selected track set unless a prerequisite track is required.
-8. Finish with Track M evidence or troubleshooting notes.
+1. Read `references/github-actions.md` before editing CI. Copy [stey-cms](https://github.com/susteynable/stey-cms/tree/main/.github/workflows) rather than designing a new workflow.
+2. Read Track A, then the minimum toolchain tracks from `references/tracks/track-index.md`.
+3. Use `references/core-toolchain.md` for sbt, aether, version tags, Nexus, and dependency bumps.
+4. Finish with Track M, using the GitHub rows in `references/troubleshooting.md`.
+
+Azure Pipelines (Tracks G–L and N, `references/core-pipelines.md`, `assets/*pipeline*.yml`) are legacy. Use them only when the repo is still on Azure DevOps and has no GitHub workflows. Migrated repos are `zARCHIVED-*` and disabled; change those services on GitHub.
 
 ## Guardrails
 
-- Do not skip Track A.
-- Do not invent Nexus URLs, credentials, or latest versions.
-- Do not use the Stey dependency workflow to bump Akka or Slick.
-- Keep project-root `.jvmopts` tracked with `-Xmx4G` / `-Xss4m` for CI sbt heap; do not gitignore or untrack it for local IDE hygiene (see Track B / `core-toolchain.md`).
-- Keep YAML-only scope unless the user explicitly expands it.
-- Develop publishes the API artifact (`*/publish` in Package); still no pipeline Artifacts drop, deploy, or Docker publish on develop.
-- Deploy gates require both Build and Artifacts to be `Succeeded`; `Skipped` must not unlock deploy.
-- `AKSHosted` is a named self-hosted pool with no `vmImage` or `poolVmImage`.
-- Helm deploys use `--timeout 5m`, not `--atomic`.
-- Prefer split pipelines from `assets/pr-pipeline.yml` + `assets/release-pipeline.yml` (PR-Agent + Build/Test vs release CI/CD; Build `dependsOn` PRAgent).
-- Canonical YAML paths: release/normal CI = `azure-pipelines/release-pipeline.yml` (ADO `{RepoName}`); PR Build Validation = `azure-pipelines/pr-pipeline.yml` (ADO `{RepoName}(PR)`). Do **not** keep or retarget release to `azure-pipelines/azure-pipelines.yml`.
-- PR-Agent image must be `steycr.azurecr.cn/steycr/pr-agent:latest` (ACR mirror); do not pull `codiumai/pr-agent` from Docker Hub on AKSHosted.
-- Azure Repos PR-Agent requires Branch Policy Build Validation; YAML `pr:` alone is not enough.
-- Protected branches must require **min 1 human approver** and Build Validation on the repo’s **`{RepoName}(PR)`** pipeline (YAML `pr-pipeline.yml`, not release); do not require Build Service as a reviewer.
-- New PR validation pipelines must be named `{RepoName}(PR)` (e.g. `SteyApiConsole(PR)`, `SteyCrs(PR)`); release CI keeps `{RepoName}` → `release-pipeline.yml`.
-- PR-Agent ADO auth should use `System.AccessToken` (build service), not a personal PAT, unless attribution to a human is intentional.
-- PR-Agent only triggers `describe` / `review` / `improve` comments — no vote reset, hard-gate, `[APPROVED]` inject, or scripted Approve; humans approve merges.
-- PR-Agent review is best-effort: fetch/run failures warn and must not fail the stage or block Build/Test.
-- PR-Agent standards come from Azure Repo `WikiTechnical/.ci/pr-standards/` (master) via ADO Items API + `System.AccessToken`: TDD → `tdd-standards.toml`, PRD → `prd-standards.toml`, code → `code-standards.toml`.
+- Do not publish or deploy from `main` or `feature/current`. Those runs test only. `test/*` and `release/*` publish and deploy China UAT. Prod is a separate manual workflow.
+- Do not match only the branch name `test` in `dockerVersionPostfix`. `test/*` must publish `<version>-uat.<run>`, the same tag Helm deploys.
+- `release/*` image tags are the bare package version. Do not suffix them `-prod`.
+- Runner is `ubuntu-latest`. Do not use the China AKS self-hosted pool for GitHub Actions.
+- Environments are only `uat`, `prod-china`, and `prod-nordics`. The Nordics image check still uses `prod-china`.
+- Do not add a federated credential per repo. Log in to `steycr.azurecr.io` with `GLOBAL_ACR_PASSWORD`. The JRE base image is public `eclipse-temurin:11.0.16_8-jre-focal`.
+- API jars publish to Nexus first, then `https://maven.pkg.github.com/susteynable/stl`. A GitHub Packages 409 still continues to `docker:publish`. A Nexus failure does not.
+- Keep `publish / skip := true` on Play modules that already skip jar publish.
+- Helm: China `--timeout 15m` and `progressDeadlineSeconds: 900`; Nordics `--timeout 5m`. No `--atomic`. `cancel-in-progress: false`.
+- Do not invent Nexus URLs, credentials, or latest versions. Do not bump Akka or Slick through the Stey dependency workflow.
+- Keep project-root `.jvmopts` tracked with `-Xmx4G` / `-Xss4m`. Workflow sbt steps also pass `-J-Xmx4G -J-Xss4m`.
 
 ## Tracks
 
 | Track | Focus |
 |---|---|
 | A | Git sync and scope |
-| B | sbt launcher |
+| B | sbt launcher and heap |
 | C | aether publish plugin |
 | D | build versioning |
 | E | Nexus metadata discovery |
 | F | Stey dependency bumps |
-| G | pipeline scope classification |
-| H | develop CI gates |
-| I | deploy stage gates |
-| J | Docker publish gates |
-| K | Helm deploy normalization |
-| L | AKSHosted agent pool |
 | M | verification and troubleshooting |
-| N | PR-Agent + branch policies (best-effort review; min 1 approver) |
+| G–L, N | Legacy Azure Pipelines, AKSHosted, PR-Agent, branch policies |
 
 ## Reference Index
 
 | When you need... | Read |
 |---|---|
-| Track order and common sequences | `references/tracks/track-index.md` |
-| sbt, aether, versioning, Nexus, dependency bump rules | `references/core-toolchain.md` |
-| Shared sbt heap (`.jvmopts` `-Xmx4G`) | `references/core-toolchain.md` → sbt heap; template `assets/jvmopts` |
-| Pipeline scope, gates, Docker, Helm, and pool rules | `references/core-pipelines.md` |
-| PR-Agent enablement (Build Validation, best-effort comments) | `references/tracks/track-n-pr-agent-azure-devops.md` |
-| Branch policies (min 1 approver + PR Build Validation; `az` recipe) | `references/tracks/track-n-branch-policies.md` |
-| Full PR pipeline template (PR-Agent + Build/Test) | `assets/pr-pipeline.yml` |
-| Full release pipeline template (no PR-Agent) | `assets/release-pipeline.yml` |
-| Symptoms, checks, and fallback routing | `references/troubleshooting.md` |
-| Copy-ready YAML templates / fragments | `assets/` |
+| GitHub workflows, tags, ACR, Maven, Helm | `references/github-actions.md` |
+| Track order | `references/tracks/track-index.md` |
+| sbt, aether, versioning, Nexus, dependency bumps | `references/core-toolchain.md` |
+| Shared sbt heap | `references/core-toolchain.md`; template `assets/jvmopts` |
+| GitHub failure symptoms | `references/troubleshooting.md` |
+| Legacy Azure pipeline gates | `references/core-pipelines.md` |
 | Nexus discovery script | `scripts/fetch_stey_nexus_latest.sh` |
 
 ## Activation Keywords
 
-`sbt`, `.jvmopts`, `Xmx4G`, `Java heap space`, `OutOfMemoryError`, `aether`, `Nexus`, `fetch_stey_nexus_latest.sh`, `libraryDependencies`, `Azure Pipelines`, `develop CI`, `docker:publish`, `HelmDeploy`, `AKSHosted`, `poolVmImage`, `PR-Agent`, `pr-agent`, `Build Validation`, `branch policy`, `minimum reviewers`, `approver-count`, `az repos policy`, `(PR)`, `SteyApiConsole(PR)`, `SteyCrs(PR)`, `System.AccessToken`, `DeepSeek`, `continueOnError`, `best-effort`, `SucceededWithIssues`, `WikiTechnical`, `.ci/pr-standards`, `tdd-standards`, `prd-standards`, `code-standards`, `steycr`, `prAgentImage`, `docker.io`, `codiumai/pr-agent`, `pr-pipeline.yml`, `release-pipeline.yml`.
+`GitHub Actions`, `workflow_dispatch`, `test/sprint-102`, `feature/current`, `release/*`, `prod-china`, `prod-nordics`, `GLOBAL_ACR_PASSWORD`, `steycr.azurecr.io`, `azurecr-global`, `publishToAll`, `MAVEN_ADMIN_TOKEN`, `susteynable/stl`, `docker:publish`, `ImagePullBackOff`, `ubuntu-latest`, `sbt`, `.jvmopts`, `Xmx4G`, `aether`, `Nexus`, `fetch_stey_nexus_latest.sh`.

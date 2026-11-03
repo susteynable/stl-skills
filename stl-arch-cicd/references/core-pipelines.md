@@ -1,6 +1,6 @@
 # Core Pipelines
 
-Use this as the canonical reference for Tracks G through L (and Track N pointers).
+Legacy Azure Pipelines reference for Tracks G through L and Track N. GitHub-hosted services follow `github-actions.md` instead. Do not copy these `develop` / `test` / `master` gates, the 5-minute China Helm timeout, or `AKSHosted` into a GitHub workflow.
 
 ## Scope classification
 

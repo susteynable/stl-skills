@@ -4,6 +4,16 @@ Use this for symptom-first routing.
 
 | Symptom | Check first |
 |---|---|
+| UAT `ImagePullBackOff` for `…-uat.<run>` `not found` | `github-actions.md` — `dockerVersionPostfix` matched only `test`, so `test/sprint-102` published `-dev.<run>` |
+| Prod Helm did not run | `github-actions.md` — `docker manifest inspect` did not find `steycr.azurecr.io/steycr/<service>:<version>` |
+| `azure/login` `AADSTS700213` or no matching federated identity | Job uses `environment: prod`, or a new per-repo credential was added. Use `uat` / `prod-china` / `prod-nordics` only |
+| Image landed in `steycr.azurecr.cn` | `dockerRepository` or the workflow login still targets China ACR. Push and pull `steycr.azurecr.io` |
+| Build still pulls `steycr.azurecr.cn/.../eclipse-temurin` | `dockerBaseImage` must be public `eclipse-temurin:11.0.16_8-jre-focal` |
+| Same release re-run never publishes the image | GitHub Packages 409 aborted the job. Continue to `docker:publish` only when the log contains `status code: 409` |
+| Publish log has GitHub Packages and no new Nexus jar | API project sets `publishTo` only. Use `publishToAllSettings` |
+| Nexus 401/403 and no image | Publish job is missing `NEXUS_USERNAME` / `NEXUS_PASSWORD`. Nexus failure must stop before `docker:publish` |
+| Runner cannot clone the repo | Workflow is on a China AKS self-hosted runner. Use `ubuntu-latest` |
+| Deploy cancelled mid-rollout | `cancel-in-progress` is true. Keep it false |
 | sbt fails before pipeline logic matters | Tracks B and C |
 | Compile OOM / GC thrash with `Heap: … max 1.00GB` on AKSHosted | Track B — missing tracked `.jvmopts` (`-Xmx4G`); do not gitignore it; not a stale checkout of a deleted local file |
 | Compile OOM despite `.jvmopts` `-Xmx4G` | Track B — project `.sbtopts` `-J-Xmx…` overriding heap, or agent memory too small for 4G |

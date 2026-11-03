@@ -7,6 +7,7 @@ die() { echo "ERROR: $*" >&2; exit 1; }
 [[ -n "$SKILL_DIR" ]] || die "Usage: validate_skill.sh <skill-dir>"
 "$SCRIPT_DIR/../../../_shared/scripts/validate_skill_base.sh" "$SKILL_DIR"
 for ref in \
+  references/github-actions.md \
   references/core-toolchain.md \
   references/core-pipelines.md \
   references/troubleshooting.md \

@@ -17,7 +17,7 @@ Use this as the canonical reference for Tracks B through F.
 
 ## sbt heap (`.jvmopts`)
 
-AKSHosted / Azure Pipelines run bare `sbt` with a clean checkout. Without a project-root `.jvmopts`, the sbt JVM defaults to ~1G and OOMs on large codegen modules (e.g. gRPC `*/api` with ~900+ sources).
+GitHub Actions and the legacy Azure Pipelines both start sbt from a clean checkout. Without a project-root `.jvmopts`, the sbt JVM defaults to ~1G and OOMs on large codegen modules (e.g. gRPC `*/api` with ~900+ sources). GitHub workflow steps also pass `-J-Xmx4G -J-Xss4m`.
 
 **Contract (commit and keep tracked):**
 
@@ -45,9 +45,11 @@ Copy-ready template: `assets/jvmopts`.
 
 ## Build versioning
 
-- `ThisBuild / version` is the source of truth.
-- Preserve postfix conventions already used by the repo.
-- Verify with `show version` or the repo's publish-target commands rather than guessing.
+- `ThisBuild / version` is the package version. GitHub tag rules live in `github-actions.md`.
+- Jar: `release/*` and `master` → `<version>-RELEASE`; every other branch → `<version>-SNAPSHOT`.
+- Image: `test` and `test/*` → `<version>-uat.<run>`; `release/*` → bare `<version>`; `master` → `<version>-prod`; else → `<version>-dev.<run>`.
+- `test/sprint-102` is a `test/*` branch. A matcher that only accepts the name `test` publishes the wrong tag.
+- Verify with `show version` or the publish log. The sbt image tag and the Helm `image.version` must be the same string.
 
 ## Nexus metadata discovery
 
