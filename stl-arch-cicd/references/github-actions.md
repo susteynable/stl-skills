@@ -8,10 +8,10 @@ Live path for Susteynable Scala services. Copy an existing conversion instead of
 
 | Git ref | What CI does |
 |---|---|
-| `main` | Default branch and PR base. A pull request into `main` runs tests only. |
+| `main` | Default branch and PR base. A push publishes a snapshot jar only. No image, no deploy. A pull request into `main` runs tests only. |
 | `feature/current` | Integration line (was Azure `develop`). Not a workflow trigger by itself. Open a PR into `main` to test. |
-| `test/*` (current line `test/sprint-102`) | Push or manual run: publish, then deploy China UAT. |
-| `release/*` | Push or manual run: publish a release image, then deploy China UAT. |
+| `test/*` (current line `test/sprint-102`) | Push or manual run: snapshot jar, image `<version>-uat.<run>`, then deploy China UAT. |
+| `release/*` | Push or manual run: release jar and image `<version>-prod`, then stop. No deploy. |
 | Pull request into `main` or `release/*` | Tests only. No publish, no deploy. |
 
 Do not trigger publish or deploy from `develop`, `test`, or `master`. Those names are the Azure mapping sources, not GitHub triggers.
@@ -20,7 +20,7 @@ Do not trigger publish or deploy from `develop`, `test`, or `master`. Those name
 
 Three workflows per service:
 
-1. **Deploy &lt;Service&gt;** — `workflow_dispatch`, push to `test/**` and `release/**`, pull request to `main` and `release/**`.
+1. **Deploy &lt;Service&gt;** — `workflow_dispatch`, push to `main`, `test/**`, and `release/**`, pull request to `main` and `release/**`.
 2. **Deploy PROD-CHINA** — `workflow_dispatch` only.
 3. **Deploy PROD-NORDICS** — `workflow_dispatch` only.
 
@@ -39,8 +39,8 @@ Jobs:
 | Job | When | Environment |
 |---|---|---|
 | Test | Always | none |
-| Publish | Push or manual run on `test/*` or `release/*` | `uat` |
-| Deploy UAT | Same as Publish | `uat` |
+| Publish | Push or manual run on `main`, `test/*`, or `release/*` | none. This job does not call Azure |
+| Deploy UAT | Push or manual run on `test/*` only | `uat` |
 | Prod check image | Manual prod workflow | `prod-china` for **both** China and Nordics checks |
 | Prod deploy | After the image exists | `prod-china` or `prod-nordics` |
 
@@ -57,7 +57,7 @@ Never bind a job to an environment named `prod`.
 - API jars go to Nexus, then to `https://maven.pkg.github.com/susteynable/stl`, via `publishToAllSettings` (`project/PublishToAll.scala`, `aether-deploy` 0.30.0). SNAPSHOT → `maven-snapshots`. RELEASE → `maven-releases`. Do not publish to `maven.pkg.github.com/susteynable/<service-repo>`.
 - Workflow env on sbt jobs: `NEXUS_USERNAME`, `NEXUS_PASSWORD`, `MAVEN_ADMIN_TOKEN`. GitHub Packages user is `susteynable-tech`. Do not put those secrets in sbt sources. `GITHUB_TOKEN` cannot publish to `stl`.
 - Play modules that already set `publish / skip := true` stay skipped. Akka services publish `<service>-api` and docker-publish `<service>-impl`.
-- GitHub Packages HTTP 409 on an existing RELEASE jar: continue to `docker:publish`. A Nexus failure stops the job before the image push.
+- GitHub Packages HTTP 409 on an existing RELEASE jar: continue to `docker:publish` when that branch publishes an image. A Nexus failure stops the job before the image push. `main` skips ACR login and `docker:publish`.
 
 ## Versions and image tags
 
@@ -65,16 +65,16 @@ Pass `BUILD_SOURCE_BRANCH_NAME=${{ github.ref_name }}` and `BUILD_NUMBER=${{ git
 
 | Branch | Jar | Image tag |
 |---|---|---|
-| `release/*` | `<version>-RELEASE` | `<version>` (no run suffix) |
-| `test` and `test/*` | `<version>-SNAPSHOT` | `<version>-uat.<run>` |
-| `master` | `<version>-RELEASE` | `<version>-prod` |
-| anything else, including `main` and `feature/current` | `<version>-SNAPSHOT` | `<version>-dev.<run>` |
+| `main` | `<version>-SNAPSHOT` | none. `Docker / publish / skip` is true |
+| `test/*` | `<version>-SNAPSHOT` | `<version>-uat.<run>` |
+| `release/*` | `<version>-RELEASE` | `<version>-prod` |
+| `feature/current` and any other branch | `<version>-SNAPSHOT` | none |
 
-`test/sprint-102` must take the `test/` image rule. Matching only the branch name `test` publishes `-dev.<run>` while Helm deploys `-uat.<run>` and UAT hits `ImagePullBackOff`. The Helm `--set image.version=<service>:${tag}` must equal the sbt `Published image` tag.
+`test/sprint-102` must take the `test/` image rule. Do not match the branch name `test` or `master`, and do not publish a `-dev.<run>` tag. The Helm `--set image.version=<service>:${tag}` must equal the sbt `Published image` tag.
 
 China UAT and China prod: `helm upgrade --install --wait --timeout 15m --cleanup-on-fail --history-max 10`, and chart `progressDeadlineSeconds: 900`. Nordics prod: `--timeout 5m`. Do not use `--atomic`.
 
-Prod Helm runs only after `docker manifest inspect` finds `steycr.azurecr.io/steycr/<service>:<version>`. Resolve a `release/*` commit with `gh api` when the workflow is started from `main` via the `release_branch` input. Do not use `az acr repository show`.
+Prod Helm runs only after `docker manifest inspect` finds `steycr.azurecr.io/steycr/<service>:<version>-prod`. Resolve a `release/*` commit with `gh api` when the workflow is started from `main` via the `release_branch` input. Do not use `az acr repository show`.
 
 ## What not to change
 

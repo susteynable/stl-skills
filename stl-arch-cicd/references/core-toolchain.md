@@ -46,9 +46,9 @@ Copy-ready template: `assets/jvmopts`.
 ## Build versioning
 
 - `ThisBuild / version` is the package version. GitHub tag rules live in `github-actions.md`.
-- Jar: `release/*` and `master` → `<version>-RELEASE`; every other branch → `<version>-SNAPSHOT`.
-- Image: `test` and `test/*` → `<version>-uat.<run>`; `release/*` → bare `<version>`; `master` → `<version>-prod`; else → `<version>-dev.<run>`.
-- `test/sprint-102` is a `test/*` branch. A matcher that only accepts the name `test` publishes the wrong tag.
+- Jar: `release/*` → `<version>-RELEASE`; `main`, `test/*`, and every other branch → `<version>-SNAPSHOT`.
+- Image: `test/*` → `<version>-uat.<run>`; `release/*` → `<version>-prod`; `main` and every other branch publish no image.
+- `test/sprint-102` is a `test/*` branch. A matcher that only accepts the name `test` or `master` publishes the wrong tag.
 - Verify with `show version` or the publish log. The sbt image tag and the Helm `image.version` must be the same string.
 
 ## Nexus metadata discovery

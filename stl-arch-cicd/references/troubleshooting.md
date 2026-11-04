@@ -5,7 +5,7 @@ Use this for symptom-first routing.
 | Symptom | Check first |
 |---|---|
 | UAT `ImagePullBackOff` for `…-uat.<run>` `not found` | `github-actions.md` — `dockerVersionPostfix` matched only `test`, so `test/sprint-102` published `-dev.<run>` |
-| Prod Helm did not run | `github-actions.md` — `docker manifest inspect` did not find `steycr.azurecr.io/steycr/<service>:<version>` |
+| Prod Helm did not run | `github-actions.md` — `docker manifest inspect` did not find `steycr.azurecr.io/steycr/<service>:<version>-prod` |
 | `azure/login` `AADSTS700213` or no matching federated identity | Job uses `environment: prod`, or a new per-repo credential was added. Use `uat` / `prod-china` / `prod-nordics` only |
 | Image landed in `steycr.azurecr.cn` | `dockerRepository` or the workflow login still targets China ACR. Push and pull `steycr.azurecr.io` |
 | Build still pulls `steycr.azurecr.cn/.../eclipse-temurin` | `dockerBaseImage` must be public `eclipse-temurin:11.0.16_8-jre-focal` |

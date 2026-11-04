@@ -25,9 +25,10 @@ Azure Pipelines (Tracks G–L and N, `references/core-pipelines.md`, `assets/*pi
 
 ## Guardrails
 
-- Do not publish or deploy from `main` or `feature/current`. Those runs test only. `test/*` and `release/*` publish and deploy China UAT. Prod is a separate manual workflow.
-- Do not match only the branch name `test` in `dockerVersionPostfix`. `test/*` must publish `<version>-uat.<run>`, the same tag Helm deploys.
-- `release/*` image tags are the bare package version. Do not suffix them `-prod`.
+- `main` publishes a snapshot jar only. Do not build an image or deploy from `main`. `feature/current` is not a workflow trigger.
+- `test/*` publishes a snapshot jar and `<version>-uat.<run>`, then deploys China UAT. Match the `test/` prefix, not the branch name `test`.
+- `release/*` publishes a release jar and `<version>-prod`, then stops. Do not deploy from that push. China prod and Nordics prod are separate manual workflows and deploy `<version>-prod`.
+- Set `Docker / publish / skip := !publishesDockerImage` so `main` does not push an image. Do not tag `main` as `-dev.<run>`.
 - Runner is `ubuntu-latest`. Do not use the China AKS self-hosted pool for GitHub Actions.
 - Environments are only `uat`, `prod-china`, and `prod-nordics`. The Nordics image check still uses `prod-china`.
 - Do not add a federated credential per repo. Log in to `steycr.azurecr.io` with `GLOBAL_ACR_PASSWORD`. The JRE base image is public `eclipse-temurin:11.0.16_8-jre-focal`.
