@@ -10,7 +10,8 @@ Use this for symptom-first routing.
 | Image landed in `steycr.azurecr.cn` | `dockerRepository` or the workflow login still targets China ACR. Push and pull `steycr.azurecr.io` |
 | Build still pulls `steycr.azurecr.cn/.../eclipse-temurin` | `dockerBaseImage` must be public `eclipse-temurin:11.0.16_8-jre-focal` |
 | Same release re-run never publishes the image | GitHub Packages 409 aborted the job. Continue to `docker:publish` only when the log contains `status code: 409` |
-| Publish log has GitHub Packages and no new Nexus jar | API project sets `publishTo` only. Use `publishToAllSettings` |
+| Publish log has GitHub Packages and no new Nexus jar | API project sets `publishTo` only. Use `publishToAllSettings` and publish to this repo, not `susteynable/stl` |
+| GitHub Packages 401, or another service's jar does not resolve | `github-actions.md` — `GH_MAVEN_USERNAME` / `GH_MAVEN_TOKEN`, and resolver `https://maven.pkg.github.com/susteynable/_` |
 | Nexus 401/403 and no image | Publish job is missing `NEXUS_USERNAME` / `NEXUS_PASSWORD`. Nexus failure must stop before `docker:publish` |
 | Runner cannot clone the repo | Workflow is on a China AKS self-hosted runner. Use `ubuntu-latest` |
 | Deploy cancelled mid-rollout | `cancel-in-progress` is true. Keep it false |

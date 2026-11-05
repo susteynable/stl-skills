@@ -54,8 +54,9 @@ Never bind a job to an environment named `prod`.
 - App images: `docker login` to org var `GLOBAL_ACR_LOGIN_SERVER` (`steycr.azurecr.io`) with `GLOBAL_ACR_USERNAME` and org secret `GLOBAL_ACR_PASSWORD`. Do not `az acr login --name steycr` (that is China ACR `steycr.azurecr.cn`).
 - `dockerRepository := Some("steycr.azurecr.io")`, `dockerUsername := Some("steycr")`, `dockerBaseImage := "eclipse-temurin:11.0.16_8-jre-focal"`.
 - Helm `image.repo` is `steycr.azurecr.io/steycr/`. Deployment `imagePullSecrets` is `azurecr-global`. Apply that pull secret in the target namespace before `helm upgrade`.
-- API jars go to Nexus, then to `https://maven.pkg.github.com/susteynable/stl`, via `publishToAllSettings` (`project/PublishToAll.scala`, `aether-deploy` 0.30.0). SNAPSHOT → `maven-snapshots`. RELEASE → `maven-releases`. Do not publish to `maven.pkg.github.com/susteynable/<service-repo>`.
-- Workflow env on sbt jobs: `NEXUS_USERNAME`, `NEXUS_PASSWORD`, `MAVEN_ADMIN_TOKEN`. GitHub Packages user is `susteynable-tech`. Do not put those secrets in sbt sources. `GITHUB_TOKEN` cannot publish to `stl`.
+- API jars go to Nexus, then to this repo at `https://maven.pkg.github.com/susteynable/<service-repo>`, via `publishToAllSettings` (`project/PublishToAll.scala`, `aether-deploy` 0.30.0). SNAPSHOT → `maven-snapshots`. RELEASE → `maven-releases`. Do not publish to shared `maven.pkg.github.com/susteynable/stl`.
+- Resolve other Stey artifacts with one resolver, `https://maven.pkg.github.com/susteynable/_`. Do not add a resolver per dependency repo. Keep Nexus ahead of that resolver.
+- Workflow env on sbt jobs: `NEXUS_USERNAME`, `NEXUS_PASSWORD`, `GH_MAVEN_USERNAME`, `GH_MAVEN_TOKEN`. Do not hardcode the GitHub Packages user. Do not put those secrets in sbt sources. `GITHUB_TOKEN` does not resolve packages across the org. Secret names must not start with `GITHUB_`; `GH_` is allowed.
 - Play modules that already set `publish / skip := true` stay skipped. Akka services publish `<service>-api` and docker-publish `<service>-impl`.
 - GitHub Packages HTTP 409 on an existing RELEASE jar: continue to `docker:publish` when that branch publishes an image. A Nexus failure stops the job before the image push. `main` skips ACR login and `docker:publish`.
 
