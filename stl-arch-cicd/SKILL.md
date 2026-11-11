@@ -3,7 +3,8 @@ name: stl-arch-cicd
 description: >
   Use when changing Stey Scala CI/CD on GitHub Actions: test/publish/UAT
   workflows, manual China and Nordics prod deploys, sbt version and image
-  tags, Nexus plus per-repo GitHub Packages publish, global ACR, Helm on AKS.
+  tags, Nexus plus per-repo GitHub Packages publish, global ACR, China ACR
+  for China prod, Helm on AKS.
   Azure Pipelines, AKSHosted, and PR-Agent are legacy and apply only to a
   repo that is still on Azure DevOps.
 ---
@@ -12,7 +13,7 @@ description: >
 
 ## Purpose
 
-Keep Stey service build and deploy changes on the GitHub Actions path: branch roles, sbt publish and image tags, Nexus plus each service repo's GitHub Packages, global ACR, and Helm deploys to China and Nordics AKS.
+Keep Stey service build and deploy changes on the GitHub Actions path: branch roles, sbt publish and image tags, Nexus plus each service repo's GitHub Packages, global ACR for build, UAT, and Nordics, China ACR for China prod, and Helm deploys to China and Nordics AKS.
 
 ## Workflow
 
@@ -31,7 +32,7 @@ Azure Pipelines (Tracks G–L and N, `references/core-pipelines.md`, `assets/*pi
 - Set `Docker / publish / skip := !publishesDockerImage` so `main` does not push an image. Do not tag `main` as `-dev.<run>`.
 - Runner is `ubuntu-latest`. Do not use the China AKS self-hosted pool for GitHub Actions.
 - Environments are only `uat`, `prod-china`, and `prod-nordics`. The Nordics image check still uses `prod-china`.
-- Do not add a federated credential per repo. Log in to `steycr.azurecr.io` with `GLOBAL_ACR_PASSWORD`. The JRE base image is public `eclipse-temurin:11.0.16_8-jre-focal`.
+- Do not add a federated credential per repo. Publish, UAT, and Nordics prod log in to `steycr.azurecr.io` with `GLOBAL_ACR_LOGIN_SERVER`, `GLOBAL_ACR_USERNAME`, and `GLOBAL_ACR_PASSWORD`. China prod logs in only to `steycr.azurecr.cn` with `CHINA_ACR_LOGIN_SERVER`, `CHINA_ACR_LOGIN_USERNAME`, and `CHINA_ACR_PASSWORD`. Put `ACR`, `ACR_USERNAME`, `ACR_PASSWORD`, and that workflow's `AZURE_ENVIRONMENT` on the workflow `env`. On Deploy Stey *, `AZURE_ENVIRONMENT` stays on the UAT job. The JRE base image is public `eclipse-temurin:11.0.16_8-jre-focal`.
 - API jars publish to Nexus first, then `https://maven.pkg.github.com/susteynable/<service-repo>`. Resolve other artifacts from `https://maven.pkg.github.com/susteynable/_` with `GH_MAVEN_USERNAME` and `GH_MAVEN_TOKEN`. Do not publish to shared `susteynable/stl`. A GitHub Packages 409 still continues to `docker:publish`. A Nexus failure does not.
 - Keep `publish / skip := true` on Play modules that already skip jar publish.
 - Helm: China `--timeout 15m` and `progressDeadlineSeconds: 900`; Nordics `--timeout 5m`. No `--atomic`. `cancel-in-progress: false`.
@@ -65,4 +66,4 @@ Azure Pipelines (Tracks G–L and N, `references/core-pipelines.md`, `assets/*pi
 
 ## Activation Keywords
 
-`GitHub Actions`, `workflow_dispatch`, `test/sprint-102`, `feature/current`, `release/*`, `prod-china`, `prod-nordics`, `GLOBAL_ACR_PASSWORD`, `steycr.azurecr.io`, `azurecr-global`, `publishToAll`, `GH_MAVEN_USERNAME`, `GH_MAVEN_TOKEN`, `susteynable/_`, `docker:publish`, `ImagePullBackOff`, `ubuntu-latest`, `sbt`, `.jvmopts`, `Xmx4G`, `aether`, `Nexus`, `fetch_stey_nexus_latest.sh`.
+`GitHub Actions`, `workflow_dispatch`, `test/sprint-102`, `feature/current`, `release/*`, `prod-china`, `prod-nordics`, `GLOBAL_ACR_PASSWORD`, `CHINA_ACR_PASSWORD`, `CHINA_ACR_LOGIN_SERVER`, `steycr.azurecr.io`, `steycr.azurecr.cn`, `azurecr-global`, `publishToAll`, `GH_MAVEN_USERNAME`, `GH_MAVEN_TOKEN`, `susteynable/_`, `docker:publish`, `ImagePullBackOff`, `ubuntu-latest`, `sbt`, `.jvmopts`, `Xmx4G`, `aether`, `Nexus`, `fetch_stey_nexus_latest.sh`.

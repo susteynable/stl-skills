@@ -51,9 +51,11 @@ Never bind a job to an environment named `prod`.
 - Do not add a federated credential per repo. Org apps `github-actions-susteynable` already match `environment:uat`, `environment:prod-china`, and `environment:prod-nordics`.
 - China `azure/login`: `environment: azurechinacloud`, vars `UAT_*` or `PROD_CHINA_*`.
 - Nordics `azure/login`: `environment: azurecloud`, vars `PROD_NORDICS_*`.
-- App images: `docker login` to org var `GLOBAL_ACR_LOGIN_SERVER` (`steycr.azurecr.io`) with `GLOBAL_ACR_USERNAME` and org secret `GLOBAL_ACR_PASSWORD`. Do not `az acr login --name steycr` (that is China ACR `steycr.azurecr.cn`).
-- `dockerRepository := Some("steycr.azurecr.io")`, `dockerUsername := Some("steycr")`, `dockerBaseImage := "eclipse-temurin:11.0.16_8-jre-focal"`.
-- Helm `image.repo` is `steycr.azurecr.io/steycr/`. Deployment `imagePullSecrets` is `azurecr-global`. Apply that pull secret in the target namespace before `helm upgrade`.
+- Publish, China UAT, and Nordics prod: `docker login` to org var `GLOBAL_ACR_LOGIN_SERVER` (`steycr.azurecr.io`) with `GLOBAL_ACR_USERNAME` and org secret `GLOBAL_ACR_PASSWORD`. Do not `az acr login --name steycr` (that is China ACR `steycr.azurecr.cn`).
+- China prod uses only China ACR. Org vars `CHINA_ACR_LOGIN_SERVER` (`steycr.azurecr.cn`) and `CHINA_ACR_LOGIN_USERNAME`, org secret `CHINA_ACR_PASSWORD`. The prod tag must already be in that registry. The workflow checks it and deploys it. It does not pull the global image or copy it across.
+- Workflow `env` holds what every job in that file shares: `ACR`, `ACR_USERNAME`, `ACR_PASSWORD`, and `AZURE_ENVIRONMENT`. Deploy PROD-CHINA sets `AZURE_ENVIRONMENT` from `PROD_CHINA_AZURE_ENVIRONMENT`. Deploy PROD-NORDICS sets it from `PROD_NORDICS_AZURE_ENVIRONMENT`. Deploy Stey * sets the global ACR trio on the workflow `env`, and sets `AZURE_ENVIRONMENT` from `UAT_AZURE_ENVIRONMENT` on the UAT job only. Do not repeat these on steps.
+- `dockerRepository := Some("steycr.azurecr.io")`, `dockerUsername := Some("steycr")`, `dockerBaseImage := "eclipse-temurin:11.0.16_8-jre-focal"`. Publish does not push to China ACR.
+- Helm `--set image.repo=${ACR}/${ACR_USERNAME}/` uses the workflow `env`, so China prod is `steycr.azurecr.cn/steycr/` and UAT and Nordics are `steycr.azurecr.io/steycr/`. Values files are overridden by that `--set`. Deployment `imagePullSecrets` stays `azurecr-global`. Apply that pull secret, with the registry this deploy uses, before `helm upgrade`.
 - API jars go to Nexus, then to this repo at `https://maven.pkg.github.com/susteynable/<service-repo>`, via `publishToAllSettings` (`project/PublishToAll.scala`, `aether-deploy` 0.30.0). SNAPSHOT → `maven-snapshots`. RELEASE → `maven-releases`. Do not publish to shared `maven.pkg.github.com/susteynable/stl`.
 - Resolve other Stey artifacts with one resolver, `https://maven.pkg.github.com/susteynable/_`. Do not add a resolver per dependency repo. Keep Nexus ahead of that resolver.
 - Workflow env on sbt jobs: `NEXUS_USERNAME`, `NEXUS_PASSWORD`, `GH_MAVEN_USERNAME`, `GH_MAVEN_TOKEN`. Do not hardcode the GitHub Packages user. Do not put those secrets in sbt sources. `GITHUB_TOKEN` does not resolve packages across the org. Secret names must not start with `GITHUB_`; `GH_` is allowed.
@@ -75,10 +77,10 @@ Pass `BUILD_SOURCE_BRANCH_NAME=${{ github.ref_name }}` and `BUILD_NUMBER=${{ git
 
 China UAT and China prod: `helm upgrade --install --wait --timeout 15m --cleanup-on-fail --history-max 10`, and chart `progressDeadlineSeconds: 900`. Nordics prod: `--timeout 5m`. Do not use `--atomic`.
 
-Prod Helm runs only after `docker manifest inspect` finds `steycr.azurecr.io/steycr/<service>:<version>-prod`. Resolve a `release/*` commit with `gh api` when the workflow is started from `main` via the `release_branch` input. Do not use `az acr repository show`.
+Nordics prod Helm runs only after `docker manifest inspect` finds `steycr.azurecr.io/steycr/<service>:<version>-prod`. China prod Helm runs only after the same inspect finds `steycr.azurecr.cn/steycr/<service>:<version>-prod`. Resolve a `release/*` commit with `gh api` when the workflow is started from `main` via the `release_branch` input. Do not use `az acr repository show`.
 
 ## What not to change
 
 - Leave `azure-pipelines/` in the tree. Migrated Azure repos are already `zARCHIVED-<Name>` with `isDisabled: true` and pipeline `queueStatus: disabled`.
 - Do not add a per-repo federated credential.
-- Do not push application images to `steycr.azurecr.cn`.
+- Do not push application images to `steycr.azurecr.cn` from publish, UAT, or Nordics prod. China prod only reads that registry.
