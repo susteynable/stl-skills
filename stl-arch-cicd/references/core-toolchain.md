@@ -37,6 +37,10 @@ Copy-ready template: `assets/jvmopts`.
 
 `checkout: self` + `clean: true` means deleted/gitignored `.jvmopts` is gone on every job — CI OOM after untracking is expected, not a stale-agent bug.
 
+## SemanticDB in CI
+
+GitHub Actions does not run scalafix. The setting and the two exceptions are in `github-actions.md`. Unconditional `semanticdbEnabled := true` makes CI emit SemanticDB that nothing in the workflow reads.
+
 ## aether publish plugin
 
 - Prefer `aether-deploy >= 0.30.0`.

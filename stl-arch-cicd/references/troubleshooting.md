@@ -18,6 +18,8 @@ Use this for symptom-first routing.
 | sbt fails before pipeline logic matters | Tracks B and C |
 | Compile OOM / GC thrash with `Heap: … max 1.00GB` on AKSHosted | Track B — missing tracked `.jvmopts` (`-Xmx4G`); do not gitignore it; not a stale checkout of a deleted local file |
 | Compile OOM despite `.jvmopts` `-Xmx4G` | Track B — project `.sbtopts` `-J-Xmx…` overriding heap, or agent memory too small for 4G |
+| CI compile is slow or writes SemanticDB that no job reads | `github-actions.md` — CI does not run scalafix. `semanticdbEnabled` must be `!sys.env.contains("GITHUB_ACTIONS")`, except a workflow that runs scalafix |
+| sbt warns that two resolvers are named GitHub Packages | `github-actions.md` — publish display name is `GitHub Packages Publish`; the `susteynable/_` resolver stays `GitHub Packages`. Do not change the URLs |
 | Latest Stey dependency cannot be found | Track E script path, resolver, credentials |
 | Script reports an older version than Nexus release metadata | Track E parser order: prefer `<release>` over stale `<latest>` |
 | Develop does not publish API jar (Package skipped) | Tracks G and H — Package stage must be `condition: succeeded()`; do not put `ne(...develop)` on the stage |

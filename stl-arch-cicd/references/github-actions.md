@@ -58,6 +58,7 @@ Never bind a job to an environment named `prod`.
 - Helm `--set image.repo=${ACR}/${ACR_USERNAME}/` uses the workflow `env`, so China prod is `steycr.azurecr.cn/steycr/` and UAT and Nordics are `steycr.azurecr.io/steycr/`. Values files are overridden by that `--set`. Deployment `imagePullSecrets` stays `azurecr-global`. Apply that pull secret, with the registry this deploy uses, before `helm upgrade`.
 - API jars go to Nexus, then to this repo at `https://maven.pkg.github.com/susteynable/<service-repo>`, via `publishToAllSettings` (`project/PublishToAll.scala`, `aether-deploy` 0.30.0). SNAPSHOT → `maven-snapshots`. RELEASE → `maven-releases`. Do not publish to shared `maven.pkg.github.com/susteynable/stl`.
 - Resolve other Stey artifacts with one resolver, `https://maven.pkg.github.com/susteynable/_`. Do not add a resolver per dependency repo. Keep Nexus ahead of that resolver.
+- Those two resolvers must not share a display name. Name the publish resolver `"GitHub Packages Publish"` and leave the `susteynable/_` resolver as `"GitHub Packages"`. Do not change either URL. A repo with only one GitHub Packages resolver keeps that single name. `publishToAll` logs `Publishing to GitHub Packages Publish`.
 - Workflow env on sbt jobs: `NEXUS_USERNAME`, `NEXUS_PASSWORD`, `GH_MAVEN_USERNAME`, `GH_MAVEN_TOKEN`. Do not hardcode the GitHub Packages user. Do not put those secrets in sbt sources. `GITHUB_TOKEN` does not resolve packages across the org. Secret names must not start with `GITHUB_`; `GH_` is allowed.
 - Play modules that already set `publish / skip := true` stay skipped. Akka services publish `<service>-api` and docker-publish `<service>-impl`.
 - GitHub Packages HTTP 409 on an existing RELEASE jar: continue to `docker:publish` when that branch publishes an image. A Nexus failure stops the job before the image push. `main` skips ACR login and `docker:publish`.
@@ -65,6 +66,15 @@ Never bind a job to an environment named `prod`.
 ## Versions and image tags
 
 Pass `BUILD_SOURCE_BRANCH_NAME=${{ github.ref_name }}` and `BUILD_NUMBER=${{ github.run_number }}`. sbt heap: `-J-Xmx4G -J-Xss4m`.
+
+GitHub Actions runs `sbt test` and does not run scalafix. Leave SemanticDB off for that compile:
+
+```scala
+// CI never runs scalafix, so skip semanticdb generation there.
+ThisBuild / semanticdbEnabled := !sys.env.contains("GITHUB_ACTIONS")
+```
+
+Local and IDE compiles still generate SemanticDB. Keep `semanticdbEnabled := true` only when the workflow itself runs scalafix: `stey-sbt-scalafix-rule` runs `sbt test` with `ScalafixTestkitPlugin`. A scripted build that reads SemanticDB, such as the i18n generator fixture, stays unconditional too.
 
 | Branch | Jar | Image tag |
 |---|---|---|

@@ -38,6 +38,8 @@ Azure Pipelines (Tracks G–L and N, `references/core-pipelines.md`, `assets/*pi
 - Helm: China `--timeout 15m` and `progressDeadlineSeconds: 900`; Nordics `--timeout 5m`. No `--atomic`. `cancel-in-progress: false`.
 - Do not invent Nexus URLs, credentials, or latest versions. Do not bump Akka or Slick through the Stey dependency workflow.
 - Keep project-root `.jvmopts` tracked with `-Xmx4G` / `-Xss4m`. Workflow sbt steps also pass `-J-Xmx4G -J-Xss4m`.
+- CI does not run scalafix. Set `semanticdbEnabled := !sys.env.contains("GITHUB_ACTIONS")` so Actions skips SemanticDB. Keep it always on only when that repo's workflow runs scalafix (`stey-sbt-scalafix-rule`).
+- When the publish resolver and the resolve resolver are both named `"GitHub Packages"`, rename only the publish resolver's display name to `"GitHub Packages Publish"`. Do not change either URL.
 
 ## Tracks
 
@@ -66,4 +68,4 @@ Azure Pipelines (Tracks G–L and N, `references/core-pipelines.md`, `assets/*pi
 
 ## Activation Keywords
 
-`GitHub Actions`, `workflow_dispatch`, `test/sprint-102`, `feature/current`, `release/*`, `prod-china`, `prod-nordics`, `GLOBAL_ACR_PASSWORD`, `CHINA_ACR_PASSWORD`, `CHINA_ACR_LOGIN_SERVER`, `steycr.azurecr.io`, `steycr.azurecr.cn`, `azurecr-global`, `publishToAll`, `GH_MAVEN_USERNAME`, `GH_MAVEN_TOKEN`, `susteynable/_`, `docker:publish`, `ImagePullBackOff`, `ubuntu-latest`, `sbt`, `.jvmopts`, `Xmx4G`, `aether`, `Nexus`, `fetch_stey_nexus_latest.sh`.
+`GitHub Actions`, `workflow_dispatch`, `test/sprint-102`, `feature/current`, `release/*`, `prod-china`, `prod-nordics`, `GLOBAL_ACR_PASSWORD`, `CHINA_ACR_PASSWORD`, `CHINA_ACR_LOGIN_SERVER`, `steycr.azurecr.io`, `steycr.azurecr.cn`, `azurecr-global`, `publishToAll`, `GH_MAVEN_USERNAME`, `GH_MAVEN_TOKEN`, `susteynable/_`, `GitHub Packages Publish`, `semanticdbEnabled`, `GITHUB_ACTIONS`, `docker:publish`, `ImagePullBackOff`, `ubuntu-latest`, `sbt`, `.jvmopts`, `Xmx4G`, `aether`, `Nexus`, `fetch_stey_nexus_latest.sh`.
